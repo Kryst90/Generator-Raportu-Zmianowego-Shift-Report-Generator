@@ -1,0 +1,1 @@
+Wygląd Generatora raportu 
