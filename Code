@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Generator Raportu Zmianowego</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #3b82f6;
+      --background: #f8fbff;
+      --card-bg: #ffffff;
+      --border: #dbeafe;
+      --text: #1e293b;
+      --muted: #64748b;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: var(--background);
+      color: var(--text);
+    }
+
+    header {
+      background: var(--primary-light);
+      color: #fff;
+      padding: 16px 24px;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    main {
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    form {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 1000px;
+      width: 100%;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }
+
+    form > div {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--primary);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    fieldset {
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    legend {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .tasks-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 2fr 0.8fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .total-time {
+      text-align: right;
+      font-weight: 600;
+      color: var(--primary);
+      margin-top: 8px;
+    }
+
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--primary-light);
+    }
+
+    footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>Generator Raportu Zmianowego</header>
+
+  <main>
+    <form id="shiftReportForm">
+      <div>
+        <label for="reportDate">Data raportu</label>
+        <input type="date" id="reportDate" name="reportDate" required>
+      </div>
+
+      <div>
+        <label for="shiftSelect">Zmiana</label>
+        <select id="shiftSelect" name="shiftSelect" required>
+          <option value="" disabled selected>Wybierz zmianę</option>
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+        </select>
+      </div>
+//worker name add
+      <div>
+        <label for="employeeSelect">Pracownik</label>
+        <select id="employeeSelect" name="employeeSelect" required>
+          <option value="" disabled selected>Wybierz pracownika</option>
+          <option>Add worker name</option>
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+          <option>4</option>
+          <option>5</option>
+          <option>6</option>
+        </select>
+      </div>
+
+      <fieldset>
+        <legend>Lista czynności</legend>
+        <div class="tasks-grid" id="tasksGrid"></div>
+        <div class="total-time" id="totalTime">Suma godzin: 0.00 h</div>
+      </fieldset>
+
+      <button type="button" id="generateMailBtn">Generuj email</button>
+    </form>
+  </main>
+
+  <footer>&copy; 2024 Generator Raportu Zmianowego</footer>
+
+  <script>
+    const tasksGrid = document.getElementById('tasksGrid');
+    const totalTimeEl = document.getElementById('totalTime');
+
+    function createTaskRow(index) {
+      const lineSelect = document.createElement('select');
+      lineSelect.name = `line${index}`;
+      ['Wybierz linię', 'LVL 2', 'HVL2', 'BURN IN', 'PDU', 'Flexline', 'Offline Flashing Station'].forEach((line, i) => {
+        const opt = document.createElement('option');
+        opt.textContent = line;
+        opt.disabled = i === 0;
+        opt.selected = i === 0;
+        lineSelect.appendChild(opt);
+      });
+
+      const actionSelect = document.createElement('select');
+      actionSelect.name = `action${index}`;
+      ['Wybierz akcję', 'Analiza', 'Testy', 'Wsparcie Produkcji', 'Przerwa'].forEach((action, i) => {
+        const opt = document.createElement('option');
+        opt.textContent = action;
+        opt.disabled = i === 0;
+        opt.selected = i === 0;
+        actionSelect.appendChild(opt);
+      });
+
+      const taskInput = document.createElement('input');
+      taskInput.type = 'text';
+      taskInput.placeholder = 'Komentarz';
+      taskInput.name = `task${index}`;
+
+      const timeInput = document.createElement('input');
+      timeInput.type = 'number';
+      timeInput.min = 0;
+      timeInput.max = 1440; // max 24h w minutach
+      timeInput.step = 1; // krok 1 minuta
+      timeInput.value = 0;
+      timeInput.name = `time${index}`;
+      timeInput.placeholder = 'minuty';
+      timeInput.addEventListener('input', updateTotalTime);
+
+      tasksGrid.appendChild(lineSelect);
+      tasksGrid.appendChild(actionSelect);
+      tasksGrid.appendChild(taskInput);
+      tasksGrid.appendChild(timeInput);
+    }
+
+    function updateTotalTime() {
+      const times = tasksGrid.querySelectorAll('input[type="number"]');
+      let sumMinutes = 0;
+      times.forEach(input => sumMinutes += parseInt(input.value) || 0);
+      const sumHours = sumMinutes / 60;
+      totalTimeEl.textContent = `Suma godzin: ${sumHours.toFixed(2)} h`;
+    }
+
+    for (let i = 0; i < 10; i++) {
+      createTaskRow(i);
+    }
+
+    document.getElementById('generateMailBtn').addEventListener('click', () => {
+      const date = document.getElementById('reportDate').value;
+      const shift = document.getElementById('shiftSelect').value;
+      const employee = document.getElementById('employeeSelect').value;
+      if (!date || !shift || !employee) {
+        alert('Proszę uzupełnić datę, zmianę i pracownika.');
+        return;
+      }
+
+      let body = `Raport zmianowy\nData: ${date}\nZmiana: ${shift}\nPracownik: ${employee}\n\nCzynności:\n`;
+      const rows = tasksGrid.querySelectorAll('.tasks-grid > *');
+      for (let i = 0; i < rows.length; i += 4) {
+        const line = rows[i].value;
+        const action = rows[i + 1].value;
+        const comment = rows[i + 2].value;
+        const timeMinutes = parseInt(rows[i + 3].value);
+        if (line !== 'Wybierz linię' && action !== 'Wybierz akcję' && timeMinutes > 0) {
+          const timeHours = (timeMinutes / 60).toFixed(2);
+          body += `Linia: ${line}, Akcja: ${action}, Komentarz: ${comment}, Czas: ${timeHours} h\n`;
+        }
+      }
+//add mail group or persones
+      const recipient = 'mailgroup@otlook.com';
+      const subject = `Raport zmianowy - ${date} - Zmiana ${shift}`;
+      const mailtoLink = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      
+      window.location.href = mailtoLink;
+    });
+    
+    // zbieranie danych
+const tasks = [];
+for (let i = 0; i < rows.length; i += 4) {
+  const line = rows[i].value;
+  const action = rows[i + 1].value;
+  const comment = rows[i + 2].value;
+  const timeMinutes = parseInt(rows[i + 3].value);
+  if (line !== 'Wybierz linię' && action !== 'Wybierz akcję' && timeMinutes > 0) {
+    tasks.push({
+      line,
+      action,
+      comment,
+      minutes: timeMinutes
+    });
+  }
+}
+
+// wywołanie zapisu
+saveToMDB(date, shift, employee, tasks);
+
+  </script>
+
+  <script>
+function saveToMDB(date, shift, employee, tasks) {
+  try {
+    // Ścieżka do Twojej bazy Access – zmień na swoją!
+    const dbPath = "E:\\generator raportu\\raporty.mdb";
+    const conn = new ActiveXObject("ADODB.Connection");
+    const rs = new ActiveXObject("ADODB.Recordset");
+
+    const connStr = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + dbPath + ";";
+
+    conn.Open(connStr);
+
+    tasks.forEach(task => {
+      const sql = `INSERT INTO Raporty (DataRaportu, Zmiana, Pracownik, Linia, Akcja, Komentarz, Minuty)
+                   VALUES ('${date}', '${shift}', '${employee}', '${task.line}', '${task.action}', '${task.comment}', ${task.minutes})`;
+      conn.Execute(sql);
+    });
+
+    conn.Close();
+    alert("Dane zapisane do bazy.");
+  } catch (e) {
+    alert("Błąd zapisu do bazy: " + e.message);
+  }
+}
+</script>
+
+</body>
+</html>
+
