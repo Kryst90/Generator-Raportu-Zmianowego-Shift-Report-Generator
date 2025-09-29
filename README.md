@@ -25,7 +25,8 @@ Designed for production teams who need a fast and consistent way to log and shar
 - **ActiveXObject** – for direct database operations (Windows only)
 
 ## Example UI
-![Example Screenshot](docs/example-ui.png) <!-- możesz dodać screenshot do repozytorium -->
+<img width="1856" height="937" alt="generatorraportuzmianowego" src="https://github.com/user-attachments/assets/3effd8be-656d-406e-86b5-a671786bbdba" />
+
 
 ## Requirements
 - Windows environment
